@@ -640,8 +640,21 @@ async function generateDOCX(labJob, user) {
         {
           width: { size: 100, type: WidthType.PERCENTAGE },
           children: [
+            new Paragraph({
+              children: [
+                new TextRun({
+                  text: `Index`,
+                  size: 24, // 12pt
+                }),
+              ],
+              alignment: AlignmentType.CENTER,
+              heading: HeadingLevel.TITLE,
+              spacing: { after: 300 }, // Large vertical space to separate sections
+            }),
             new Table({
-              width: { size: 100, type: WidthType.PERCENTAGE },
+              width: { size: 9000, type: WidthType.DXA }, // Use about 90% of page width
+              columnWidths: [900, 4300, 1350, 1350, 1100], // Adjusted widths for better balance
+              // 1. Changed from AUTO to FIXED
               // 2. This line is the critical fix
               layout: TableLayoutType.FIXED,
               rows: [
@@ -694,6 +707,21 @@ async function generateDOCX(labJob, user) {
                           children: [
                             new TextRun({
                               text: "Page No.",
+                              bold: true,
+                              size: 20,
+                            }),
+                          ],
+                          alignment: AlignmentType.LEFT,
+                        }),
+                      ],
+                      width: { size: 15, type: WidthType.PERCENTAGE },
+                    }),
+                    new TableCell({
+                      children: [
+                        new Paragraph({
+                          children: [
+                            new TextRun({
+                              text: "Signature",
                               bold: true,
                               size: 20,
                             }),
