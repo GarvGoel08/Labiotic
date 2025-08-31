@@ -10,6 +10,7 @@ import {
   TextRun,
   HeadingLevel,
   AlignmentType,
+  VerticalAlign,
   TableLayoutType,
   Packer,
   Table,
@@ -17,7 +18,11 @@ import {
   TableCell,
   WidthType,
   BorderStyle,
+  ShadingType,
+  ImageRun,
 } from "docx";
+import fs from "fs";
+import path from "path";
 import { cookies } from "next/headers";
 
 // Helper function to parse text with bold formatting
@@ -446,75 +451,85 @@ async function generatePDF(labJob, user) {
 
 async function generateDOCX(labJob, user) {
   try {
+    const imagePath = path.join(
+      process.cwd(),
+      "app",
+      "api",
+      "export-lab",
+      "university_logo.png"
+    );
+    const imageData = fs.readFileSync(imagePath);
     const doc = new Document({
       sections: [
         {
           children: [
-            // --- Start of Improved Cover Page ---
-
-            // University/Department Header - Centered for a formal look.
-            // You could potentially add a university logo here as well.
+            // --- DELHI TECHNOLOGICAL UNIVERSITY Header ---
             new Paragraph({
               children: [
                 new TextRun({
-                  text: user.profile?.university || "Your University Name",
+                  text: "DELHI TECHNOLOGICAL UNIVERSITY",
                   bold: true,
-                  size: 28, // 14pt
+                  font: "Times New Roman", // Often used in formal documents
+                  size: 44, // Adjusted to visually match the prominence
                 }),
               ],
+              heading: HeadingLevel.TITLE,
               alignment: AlignmentType.CENTER,
-              spacing: { after: 200 },
-            }),
-            new Paragraph({
-              children: [
-                new TextRun({
-                  text: user.profile?.department || "Department of Engineering",
-                  size: 24, // 12pt
-                }),
-              ],
-              alignment: AlignmentType.CENTER,
-              spacing: { after: 800 }, // Generous space after the header
+              spacing: { after: 2100 }, // Fine-tuned space after the university name
             }),
 
-            // Main Title Block - Centered and with clear hierarchy
+            // --- University Logo ---
             new Paragraph({
               children: [
-                new TextRun({
-                  text: "LABORATORY PRACTICAL FILE",
-                  bold: true,
-                  size: 40, // 20pt, larger for emphasis
+                new ImageRun({
+                  data: imageData,
+                  transformation: {
+                    width: 410, // Keep consistent with previous and adjust if needed
+                    height: 410,
+                  },
                 }),
               ],
               alignment: AlignmentType.CENTER,
-              spacing: { after: 400 },
-            }),
-            new Paragraph({
-              children: [
-                new TextRun({
-                  text: `Subject: ${labJob.subject}`,
-                  bold: true,
-                  size: 28, // 14pt
-                }),
-              ],
-              alignment: AlignmentType.CENTER,
-            }),
-            new Paragraph({
-              children: [
-                new TextRun({
-                  text: `Subject Code: ${labJob.subjectCode}`,
-                  size: 24, // 12pt
-                }),
-              ],
-              alignment: AlignmentType.CENTER,
-              spacing: { after: 1200 }, // Large vertical space to separate sections
+              spacing: { after: 700 }, // Slightly reduced space to bring IT-201 closer
             }),
 
-            // Submission Details - Using a borderless table for clean, professional alignment
+            // --- IT-201 (Course Code) ---
+            new Paragraph({
+              children: [
+                new TextRun({
+                  text: "IT-201",
+                  bold: true,
+                  font: "Times New Roman",
+                  size: 32, // Consistent size
+                }),
+              ],
+              alignment: AlignmentType.CENTER,
+              heading: HeadingLevel.TITLE,
+              spacing: { after: 300 }, // Closer to the lab file title
+            }),
+
+            // --- Data Structures LAB FILE(G-2) ---
+            new Paragraph({
+              children: [
+                new TextRun({
+                  text: "Data Structures LAB FILE(G-2)",
+                  bold: true,
+                  underline: {}, // As per Image 2
+                  font: "Times New Roman",
+                  size: 32, // Consistent size
+                }),
+              ],
+              alignment: AlignmentType.CENTER,
+              spacing: { after: 1200 }, // Generous space before submission details
+            }),
+
+            // --- Submission Details Table ---
+            // Using a table for precise alignment of "Submitted To" and "Submitted By" sections
             new Table({
               width: { size: 9000, type: WidthType.DXA }, // Use about 90% of page width
               columnWidths: [4500, 4500], // Two equal columns
               rows: [
-                // Row 1: Headings for the two sections
+                // Row 1: "Submitted To:-" and "Submitted By:"
                 new TableRow({
                   children: [
                     new TableCell({
@@ -522,9 +537,9 @@ async function generateDOCX(labJob, user) {
                         new Paragraph({
                           children: [
                             new TextRun({
-                              text: "SUBMITTED TO",
-                              bold: true,
-                              size: 24,
+                              text: "Submitted To:-",
+                              font: "Times New Roman",
+                              size: 24, // Consistent font size
                             }),
                           ],
                         }),
@@ -535,15 +550,16 @@ async function generateDOCX(labJob, user) {
                         left: { style: BorderStyle.NONE },
                         right: { style: BorderStyle.NONE },
                       },
+                      verticalAlign: VerticalAlign.TOP, // Align content to top of cell
                     }),
                     new TableCell({
                       children: [
                         new Paragraph({
                           children: [
                             new TextRun({
-                              text: "SUBMITTED BY",
-                              bold: true,
-                              size: 24,
+                              text: "Submitted By:",
+                              font: "Times New Roman",
+                              size: 24, // Consistent font size
                             }),
                           ],
                         }),
@@ -554,6 +570,7 @@ async function generateDOCX(labJob, user) {
                         left: { style: BorderStyle.NONE },
                         right: { style: BorderStyle.NONE },
                       },
+                      verticalAlign: VerticalAlign.TOP,
                     }),
                   ],
                 }),
@@ -561,30 +578,17 @@ async function generateDOCX(labJob, user) {
                 new TableRow({
                   children: [
                     new TableCell({
-                      children: [new Paragraph(labJob.instructorName)],
-                      borders: {
-                        top: { style: BorderStyle.NONE },
-                        bottom: { style: BorderStyle.NONE },
-                        left: { style: BorderStyle.NONE },
-                        right: { style: BorderStyle.NONE },
-                      },
-                    }),
-                    new TableCell({
-                      children: [new Paragraph(user.name)],
-                      borders: {
-                        top: { style: BorderStyle.NONE },
-                        bottom: { style: BorderStyle.NONE },
-                        left: { style: BorderStyle.NONE },
-                        right: { style: BorderStyle.NONE },
-                      },
-                    }),
-                  ],
-                }),
-                // Row 3: Blank on the left, Roll number on the right
-                new TableRow({
-                  children: [
-                    new TableCell({
-                      children: [new Paragraph("")], // Empty cell for spacing
+                      children: [
+                        new Paragraph({
+                          children: [
+                            new TextRun({
+                              text: "Dr. Lalita Luthra.", // Example, use labJob.instructorName
+                              font: "Times New Roman",
+                              size: 24,
+                            }),
+                          ],
+                        }),
+                      ],
                       borders: {
                         top: { style: BorderStyle.NONE },
                         bottom: { style: BorderStyle.NONE },
@@ -594,11 +598,25 @@ async function generateDOCX(labJob, user) {
                     }),
                     new TableCell({
                       children: [
-                        new Paragraph(
-                          user.profile?.rollNumber
-                            ? `Roll Number: ${user.profile.rollNumber}`
-                            : ""
-                        ),
+                        new Paragraph({
+                          children: [
+                            new TextRun({
+                              text: "Garv Goel", // Example, use user.name
+                              font: "Times New Roman",
+                              size: 24,
+                            }),
+                          ],
+                        }),
+                        new Paragraph({
+                          // Roll number in a separate paragraph for spacing
+                          children: [
+                            new TextRun({
+                              text: "Roll No.- 2K22/EE/108", // Example, use user.profile?.rollNumber
+                              font: "Times New Roman",
+                              size: 24,
+                            }),
+                          ],
+                        }),
                       ],
                       borders: {
                         top: { style: BorderStyle.NONE },
@@ -611,28 +629,6 @@ async function generateDOCX(labJob, user) {
                 }),
               ],
             }),
-
-            // Spacer paragraph to push the date towards the bottom of the page
-            new Paragraph({
-              text: "",
-              spacing: { before: 3000 },
-            }),
-
-            // Submission Date - Centered at the bottom
-            new Paragraph({
-              children: [
-                new TextRun({
-                  text: `Date of Submission: ${new Date().toLocaleDateString(
-                    "en-GB",
-                    { day: "2-digit", month: "long", year: "numeric" }
-                  )}`, // e.g., 31 August 2025
-                  size: 24, // 12pt
-                }),
-              ],
-              alignment: AlignmentType.CENTER,
-            }),
-
-            // --- End of Improved Cover Page ---
           ],
         },
 
@@ -775,6 +771,16 @@ async function generateDOCX(labJob, user) {
                             new Paragraph({
                               children: [
                                 new TextRun({ text: `${index + 3}`, size: 18 }),
+                              ],
+                              alignment: AlignmentType.LEFT,
+                            }),
+                          ],
+                        }),
+                        new TableCell({
+                          children: [
+                            new Paragraph({
+                              children: [
+                                new TextRun({ text: "", size: 18 }),
                               ],
                               alignment: AlignmentType.LEFT,
                             }),
