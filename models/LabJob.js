@@ -29,7 +29,8 @@ const experimentSchema = new mongoose.Schema({
     conclusion: String,
     precautions: [String], // Array of precautions
     references: [String], // Array of references
-    applications: String
+    applications: String,
+    codeOutput: String // Terminal-style code output
   },
   error: String,
   retryCount: {

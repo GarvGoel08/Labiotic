@@ -87,7 +87,7 @@ function createFormattedParagraph(
   return new Paragraph({
     children: createFormattedTextRuns(text, baseFontSize),
     alignment: alignment,
-    spacing: { after: 100 }, // Reduced spacing
+    spacing: { after: 50 }, // Reduced spacing significantly
   });
 }
 
@@ -324,7 +324,7 @@ async function generatePDF(labJob, user) {
           .font("Helvetica-Bold")
           .fontSize(16)
           .text(`Experiment ${exp.experimentNumber}`, { align: "left" });
-        doc.moveDown(0.5);
+        doc.moveDown(0.3);
 
         doc.fontSize(14).text(exp.generatedContent.title, { align: "left" });
         doc.moveDown(1);
@@ -334,7 +334,7 @@ async function generatePDF(labJob, user) {
         doc.font("Helvetica-Bold").fontSize(12).text("AIM:", { align: "left" });
         doc.font("Helvetica");
         addFormattedTextToPDF(doc, exp.generatedContent.aim, 12);
-        doc.moveDown(0.5);
+        doc.moveDown(0.3);
 
         // Apparatus - left aligned
         doc.font("Helvetica-Bold").text("APPARATUS:", { align: "left" });
@@ -350,13 +350,13 @@ async function generatePDF(labJob, user) {
             12
           );
         }
-        doc.moveDown(0.5);
+        doc.moveDown(0.3);
 
         // Theory - left aligned
         doc.font("Helvetica-Bold").text("THEORY:", { align: "left" });
         doc.font("Helvetica");
         addFormattedTextToPDF(doc, exp.generatedContent.theory, 12);
-        doc.moveDown(0.5);
+        doc.moveDown(0.3);
 
         // Procedure - left aligned
         doc.font("Helvetica-Bold").text("PROCEDURE:", { align: "left" });
@@ -372,7 +372,7 @@ async function generatePDF(labJob, user) {
             12
           );
         }
-        doc.moveDown(0.5);
+        doc.moveDown(0.3);
 
         // Code - left aligned (if present)
         if (exp.generatedContent.code && exp.generatedContent.code.trim()) {
@@ -382,7 +382,18 @@ async function generatePDF(labJob, user) {
             width: 500,
             align: "left",
           });
-          doc.moveDown(0.5);
+          doc.moveDown(0.3);
+          
+          // Code Output - left aligned (if present)
+          if (exp.generatedContent.codeOutput && exp.generatedContent.codeOutput.trim()) {
+            doc.font("Helvetica-Bold").text("OUTPUT:", { align: "left" });
+            doc.font("Helvetica");
+            doc.fontSize(9).text(exp.generatedContent.codeOutput, {
+              width: 500,
+              align: "left",
+            });
+            doc.moveDown(0.3);
+          }
         }
 
         // Observations - left aligned
@@ -392,7 +403,7 @@ async function generatePDF(labJob, user) {
           .text("OBSERVATIONS:", { align: "left" });
         doc.font("Helvetica");
         addFormattedTextToPDF(doc, exp.generatedContent.observations, 12);
-        doc.moveDown(0.5);
+        doc.moveDown(0.3);
 
         // Calculations - left aligned
         if (
@@ -402,14 +413,14 @@ async function generatePDF(labJob, user) {
           doc.font("Helvetica-Bold").text("CALCULATIONS:", { align: "left" });
           doc.font("Helvetica");
           addFormattedTextToPDF(doc, exp.generatedContent.calculations, 12);
-          doc.moveDown(0.5);
+          doc.moveDown(0.3);
         }
 
         // Result - left aligned
         doc.font("Helvetica-Bold").text("RESULT:", { align: "left" });
         doc.font("Helvetica");
         addFormattedTextToPDF(doc, exp.generatedContent.result, 12);
-        doc.moveDown(0.5);
+        doc.moveDown(0.3);
 
         // Precautions - left aligned
         doc.font("Helvetica-Bold").text("PRECAUTIONS:", { align: "left" });
@@ -426,7 +437,7 @@ async function generatePDF(labJob, user) {
             12
           );
         }
-        doc.moveDown(0.5);
+        doc.moveDown(0.3);
 
         // References - left aligned
         if (
@@ -827,7 +838,7 @@ async function generateDOCX(labJob, user) {
             new Paragraph({
               children: [new TextRun({ text: "AIM:", bold: true, size: 20 })],
               alignment: AlignmentType.LEFT,
-              spacing: { after: 100 },
+              spacing: { after: 50 },
             }),
             createFormattedParagraph(exp.generatedContent.aim, 20),
 
@@ -836,7 +847,7 @@ async function generateDOCX(labJob, user) {
                 new TextRun({ text: "APPARATUS:", bold: true, size: 20 }),
               ],
               alignment: AlignmentType.LEFT,
-              spacing: { after: 100 },
+              spacing: { after: 50 },
             }),
             ...(Array.isArray(exp.generatedContent.apparatus)
               ? exp.generatedContent.apparatus.map((item) =>
@@ -854,7 +865,7 @@ async function generateDOCX(labJob, user) {
                 new TextRun({ text: "THEORY:", bold: true, size: 20 }),
               ],
               alignment: AlignmentType.LEFT,
-              spacing: { after: 100 },
+              spacing: { after: 50 },
             }),
             createFormattedParagraph(exp.generatedContent.theory, 20),
 
@@ -863,7 +874,7 @@ async function generateDOCX(labJob, user) {
                 new TextRun({ text: "PROCEDURE:", bold: true, size: 20 }),
               ],
               alignment: AlignmentType.LEFT,
-              spacing: { after: 100 },
+              spacing: { after: 50 },
             }),
             ...(Array.isArray(exp.generatedContent.procedure)
               ? exp.generatedContent.procedure.map((step, i) =>
@@ -883,7 +894,7 @@ async function generateDOCX(labJob, user) {
                       new TextRun({ text: "CODE:", bold: true, size: 20 }),
                     ],
                     alignment: AlignmentType.LEFT,
-                    spacing: { after: 100 },
+                    spacing: { after: 50 },
                   }),
                   new Paragraph({
                     children: [
@@ -894,8 +905,31 @@ async function generateDOCX(labJob, user) {
                       }),
                     ],
                     alignment: AlignmentType.LEFT,
-                    spacing: { after: 200 },
+                    spacing: { after: 50 },
                   }),
+                  // Add code output if present
+                  ...(exp.generatedContent.codeOutput && exp.generatedContent.codeOutput.trim()
+                    ? [
+                        new Paragraph({
+                          children: [
+                            new TextRun({ text: "OUTPUT:", bold: true, size: 20 }),
+                          ],
+                          alignment: AlignmentType.LEFT,
+                          spacing: { after: 50 },
+                        }),
+                        new Paragraph({
+                          children: [
+                            new TextRun({
+                              text: exp.generatedContent.codeOutput,
+                              font: "Consolas",
+                              size: 16,
+                            }),
+                          ],
+                          alignment: AlignmentType.LEFT,
+                          spacing: { after: 100 },
+                        }),
+                      ]
+                    : []),
                 ]
               : []),
 
@@ -904,7 +938,7 @@ async function generateDOCX(labJob, user) {
                 new TextRun({ text: "OBSERVATIONS:", bold: true, size: 20 }),
               ],
               alignment: AlignmentType.LEFT,
-              spacing: { after: 100 },
+              spacing: { after: 50 },
             }),
             createFormattedParagraph(exp.generatedContent.observations, 20),
 
@@ -920,7 +954,7 @@ async function generateDOCX(labJob, user) {
                       }),
                     ],
                     alignment: AlignmentType.LEFT,
-                    spacing: { after: 100 },
+                    spacing: { after: 50 },
                   }),
                   createFormattedParagraph(
                     exp.generatedContent.calculations,
@@ -934,7 +968,7 @@ async function generateDOCX(labJob, user) {
                 new TextRun({ text: "RESULT:", bold: true, size: 20 }),
               ],
               alignment: AlignmentType.LEFT,
-              spacing: { after: 100 },
+              spacing: { after: 50 },
             }),
             createFormattedParagraph(exp.generatedContent.result, 20),
 
@@ -943,7 +977,7 @@ async function generateDOCX(labJob, user) {
                 new TextRun({ text: "PRECAUTIONS:", bold: true, size: 20 }),
               ],
               alignment: AlignmentType.LEFT,
-              spacing: { after: 100 },
+              spacing: { after: 50 },
             }),
             ...(Array.isArray(exp.generatedContent.precautions)
               ? exp.generatedContent.precautions.map((precaution) =>

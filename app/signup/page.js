@@ -3,8 +3,9 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
+import { GuestOnlyRoute } from '@/lib/protected-route';
 
-export default function Signup() {
+function SignupPage() {
   const [formData, setFormData] = useState({
     name: '',
     email: '',
@@ -271,5 +272,13 @@ export default function Signup() {
         </div>
       </div>
     </div>
+  );
+}
+
+export default function Signup() {
+  return (
+    <GuestOnlyRoute>
+      <SignupPage />
+    </GuestOnlyRoute>
   );
 }

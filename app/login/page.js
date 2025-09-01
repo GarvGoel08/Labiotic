@@ -3,8 +3,10 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
+import { GuestOnlyRoute } from '@/lib/protected-route';
+import { useAuth } from '@/lib/auth-context';
 
-export default function Login() {
+function LoginPage() {
   const [formData, setFormData] = useState({
     email: '',
     password: '',
@@ -15,6 +17,7 @@ export default function Login() {
   const [unverifiedUserId, setUnverifiedUserId] = useState(null);
   
   const router = useRouter();
+  const { checkAuth } = useAuth();
 
   const handleChange = (e) => {
     setFormData({
@@ -41,7 +44,8 @@ export default function Login() {
       const data = await response.json();
 
       if (data.success) {
-        // Redirect to dashboard or home page
+        // Check auth and redirect to dashboard
+        await checkAuth();
         router.push('/dashboard');
         router.refresh();
       } else {
@@ -198,5 +202,13 @@ export default function Login() {
         </div>
       </div>
     </div>
+  );
+}
+
+export default function Login() {
+  return (
+    <GuestOnlyRoute>
+      <LoginPage />
+    </GuestOnlyRoute>
   );
 }

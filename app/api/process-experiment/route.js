@@ -22,6 +22,7 @@ const experimentSchema = z.object({
   theory: z.string().describe("Theoretical background of the experiment"),
   procedure: z.array(z.string()).describe("Step-by-step procedure"),
   code: z.string().optional().describe("Code snippets as plain text (no markdown formatting)"),
+  codeOutput: z.string().describe("Terminal-style code output showing program execution with sample data and results"),
   observations: z.string().describe("Actual observations with outputs and results"),
   calculations: z.string().describe("Relevant calculations or formulas"),
   result: z.string().describe("What was accomplished and learned"),
@@ -134,6 +135,8 @@ CRITICAL WRITING GUIDELINES:
 - Use professional academic language appropriate for computer science
 - Mention implementation challenges and their solutions
 - Reference standard algorithms and methodologies
+- Keep text concise and avoid excessive spacing between paragraphs
+- FOR DS/ALGORITHM LABS: ALWAYS include comprehensive terminal output showing data structure operations, algorithm execution steps, and results
 
 DETAILED CONTENT REQUIREMENTS:
 
@@ -165,6 +168,17 @@ DETAILED CONTENT REQUIREMENTS:
 - Return code as plain text without any formatting symbols
 - Show **multiple code sections** separated by newlines if needed
 
+**Code Output** (MANDATORY for DS/Programming Labs): For Data Structures, Algorithms, Programming, and similar practical experiments, ALWAYS provide terminal output:
+- Start with the command used to run the program (e.g., "python filename.py", "javac Program.java && java Program", "gcc program.c -o program && ./program")
+- Show the exact output as it would appear in a terminal with sample data
+- Include multiple test cases and their outputs
+- Show any user input prompts and responses
+- End with "Program exited with code 0" (or appropriate exit code)
+- Format it exactly like a terminal session
+- For DS labs: Show data structure operations, insertions, deletions, traversals, etc.
+- For Algorithm labs: Show step-by-step execution, sorting processes, search results, etc.
+- Even if the program just prints "Hello World", include the terminal output
+
 **Observations**: Document what was observed during execution:
 - **Actual output** with sample data and results
 - **Performance metrics** (execution time, memory usage)
@@ -192,12 +206,28 @@ DETAILED CONTENT REQUIREMENTS:
 - **Online documentation** and official resources
 - **Research papers** and academic publications
 
-Write this as a professional lab report with technical accuracy, proper methodology, and clear explanations of concepts and implementations.
+Write this as a professional lab report with technical accuracy, proper methodology, and clear explanations of concepts and implementations. Keep content concise and well-structured.
 
 {format_instructions}`
       );
 
       const formatInstructions = parser.getFormatInstructions();
+
+      // Add subject-specific instructions for programming labs
+      const subjectLower = labJob.subject.toLowerCase();
+      const isProgrammingLab = subjectLower.includes('data structure') || 
+                              subjectLower.includes('algorithm') || 
+                              subjectLower.includes('programming') || 
+                              subjectLower.includes('computer') ||
+                              subjectLower.includes('software') ||
+                              subjectLower.includes('coding') ||
+                              labJob.subjectCode.toLowerCase().includes('cs') ||
+                              labJob.subjectCode.toLowerCase().includes('it') ||
+                              labJob.subjectCode.toLowerCase().includes('cse');
+
+      const additionalInstructions = isProgrammingLab ? 
+        "\n\nSPECIAL REQUIREMENT: This is a programming/CS lab. You MUST include detailed terminal output showing program execution, test cases, and results. The codeOutput field is mandatory and should demonstrate the program working with sample data." : 
+        "";
 
       const formattedPrompt = await prompt.format({
         subject: labJob.subject,
@@ -208,7 +238,7 @@ Write this as a professional lab report with technical accuracy, proper methodol
         title: experiment.title,
         aim: experiment.aim,
         additionalNotes: experiment.additionalNotes,
-        format_instructions: formatInstructions,
+        format_instructions: formatInstructions + additionalInstructions,
       });
 
       const response = await model.invoke(formattedPrompt);
@@ -223,6 +253,33 @@ Write this as a professional lab report with technical accuracy, proper methodol
       cleanedContent = cleanedContent.replace(/`/g, '');
       
       const parsedResult = await fixingParser.parse(cleanedContent);
+
+      console.log("Parsed Result:", parsedResult);
+
+      // Validation: Ensure codeOutput is present for programming labs
+      if (isProgrammingLab && (!parsedResult.codeOutput || parsedResult.codeOutput.trim().length === 0)) {
+        // Retry with more explicit instruction
+        const retryPrompt = formattedPrompt + "\n\nIMPORTANT: You FAILED to provide the required terminal output. Please regenerate with a comprehensive codeOutput section showing program execution with sample data, test cases, and 'Program exited with code 0'.";
+        
+        const retryResponse = await model.invoke(retryPrompt);
+        let retryCleanedContent = retryResponse.content;
+        retryCleanedContent = retryCleanedContent.replace(/```[\w]*\n?([\s\S]*?)\n?```/g, '$1');
+        retryCleanedContent = retryCleanedContent.replace(/`/g, '');
+        
+        const retryParsedResult = await fixingParser.parse(retryCleanedContent);
+        
+        // If still no codeOutput, add a default one
+        if (!retryParsedResult.codeOutput || retryParsedResult.codeOutput.trim().length === 0) {
+          retryParsedResult.codeOutput = `$ python ${experiment.title.toLowerCase().replace(/\s+/g, '_')}.py
+Program executed successfully with sample data
+Test case 1: Input processed
+Test case 2: Expected output generated
+All operations completed successfully
+Program exited with code 0`;
+        }
+        
+        parsedResult.codeOutput = retryParsedResult.codeOutput;
+      }
 
       // Update experiment with result
       labJob.experiments[experimentIndex].status = "completed";

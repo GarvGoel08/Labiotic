@@ -1,12 +1,14 @@
 'use client';
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
+import { ProtectedRoute } from '@/lib/protected-route';
+import { useAuth } from '@/lib/auth-context';
 
-export default function Dashboard() {
+export default function DashboardPage() {
   const [activeTab, setActiveTab] = useState('profile');
-  const [user, setUser] = useState(null);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
   const router = useRouter();
+  const { user, logout } = useAuth();
 
   // Profile form states
   const [profile, setProfile] = useState({
@@ -50,60 +52,40 @@ export default function Dashboard() {
   const [recentJobs, setRecentJobs] = useState([]);
 
   useEffect(() => {
-    fetchUserProfile();
-    fetchRecentJobs();
-  }, []);
+    if (user) {
+      initializeUserData();
+      fetchRecentJobs();
+    }
+  }, [user]);
 
-  const fetchUserProfile = async () => {
-    try {
-      const response = await fetch('/api/auth/profile', {
-        headers: {
-          'Authorization': `Bearer ${localStorage.getItem('token')}`
-        }
+  const initializeUserData = () => {
+    if (user.profile) {
+      setProfile({
+        fullName: user.profile.fullName || '',
+        rollNumber: user.profile.rollNumber || '',
+        course: user.profile.course || '',
+        semester: user.profile.semester || '',
+        section: user.profile.section || '',
+        university: {
+          name: user.profile.university?.name || '',
+          address: user.profile.university?.address || '',
+          city: user.profile.university?.city || '',
+          state: user.profile.university?.state || '',
+          pincode: user.profile.university?.pincode || '',
+          department: user.profile.university?.department || '',
+        },
+        isProfileComplete: user.profile.isProfileComplete || false
       });
-
-      if (response.ok) {
-        const userData = await response.json();
-        setUser(userData.user);
-        
-        // Set profile data if it exists
-        if (userData.user.profile) {
-          setProfile({
-            fullName: userData.user.profile.fullName || '',
-            rollNumber: userData.user.profile.rollNumber || '',
-            course: userData.user.profile.course || '',
-            semester: userData.user.profile.semester || '',
-            section: userData.user.profile.section || '',
-            university: {
-              name: userData.user.profile.university?.name || '',
-              address: userData.user.profile.university?.address || '',
-              city: userData.user.profile.university?.city || '',
-              state: userData.user.profile.university?.state || '',
-              pincode: userData.user.profile.university?.pincode || '',
-              department: userData.user.profile.university?.department || '',
-            },
-            isProfileComplete: userData.user.profile.isProfileComplete || false
-          });
-          setGeminiApiKey(userData.user.decryptedGeminiKey || '');
-        }
-      } else {
-        // Redirect to login if not authenticated
-        router.push('/login');
-      }
-    } catch (error) {
-      console.error('Error fetching profile:', error);
-      router.push('/login');
-    } finally {
-      setLoading(false);
+    }
+    if (user.decryptedGeminiKey) {
+      setGeminiApiKey(user.decryptedGeminiKey);
     }
   };
 
   const fetchRecentJobs = async () => {
     try {
       const response = await fetch('/api/lab-jobs', {
-        headers: {
-          'Authorization': `Bearer ${localStorage.getItem('token')}`
-        }
+        credentials: 'include',
       });
 
       if (response.ok) {
@@ -122,8 +104,8 @@ export default function Dashboard() {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('token')}`
         },
+        credentials: 'include',
         body: JSON.stringify({
           profile: {
             ...profile,
@@ -135,7 +117,8 @@ export default function Dashboard() {
 
       if (response.ok) {
         alert('Profile updated successfully!');
-        fetchUserProfile(); // Refresh user data
+        // Refresh user data by calling checkAuth from useAuth
+        window.location.reload(); // Simple refresh to get updated user data
       } else {
         const data = await response.json();
         alert(data.message || 'Error updating profile');
@@ -242,8 +225,8 @@ export default function Dashboard() {
     }
   };
 
-  const handleLogout = () => {
-    localStorage.removeItem('token');
+  const handleLogout = async () => {
+    await logout();
     router.push('/');
   };
 
