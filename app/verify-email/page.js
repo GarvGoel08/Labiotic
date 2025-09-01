@@ -1,10 +1,29 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 
+// Loader + Suspense
+function Loading() {
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-indigo-50 via-white to-cyan-50 flex items-center justify-center">
+      <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-indigo-600"></div>
+      <p className="text-center text-lg text-gray-700">Loading Verification...</p>
+    </div>
+  );
+}
+
 export default function VerifyEmail() {
+  return(
+
+        <Suspense fallback={<Loading />}>
+          <VerifyEmailComp />
+        </Suspense>
+  )
+}
+
+function VerifyEmailComp() {
   const [status, setStatus] = useState('verifying'); // verifying, success, error
   const [message, setMessage] = useState('');
   const [loading, setLoading] = useState(true);
