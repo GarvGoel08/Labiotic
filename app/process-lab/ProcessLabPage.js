@@ -371,16 +371,17 @@ export default function ProcessLabPage() {
               <>
                 <div className="flex gap-4">
                   <button
-                    onClick={() => exportFile('pdf')}
-                    className="bg-red-600 text-white px-6 py-3 rounded-lg hover:bg-red-700 transition font-medium flex items-center"
-                  >
-                    📄 Export PDF
-                  </button>
-                  <button
                     onClick={() => exportFile('docx')}
                     className="bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 transition font-medium flex items-center"
                   >
                     📝 Export DOCX
+                  </button>
+                  <button
+                    disabled={true}
+                    onClick={() => exportFile('pdf')}
+                    className="bg-red-300 text-white px-6 py-3 rounded-lg transition font-medium flex items-center"
+                  >
+                    📄 Export PDF(Coming Soon)
                   </button>
                 </div>
                 <div className="w-full mt-2">
