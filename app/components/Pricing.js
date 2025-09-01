@@ -99,13 +99,13 @@ export default function Pricing() {
                   ))}
                 </ul>
 
-                <button className={`w-full py-4 rounded-xl font-semibold text-lg transition-all duration-300 transform hover:scale-105 ${
+                <a href="/signup" className={` w-full block text-center py-4 rounded-xl font-semibold text-lg transition-all duration-300 transform hover:scale-105 ${
                   plan.popular
                     ? 'bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white shadow-lg'
                     : 'bg-gray-100 hover:bg-gray-200 text-gray-900'
                 }`}>
                   {plan.buttonText}
-                </button>
+                </a>
               </div>
             </div>
           ))}

@@ -194,9 +194,9 @@ export default function Testimonials() {
             <div className="bg-white px-6 py-3 rounded-lg shadow text-gray-600 font-semibold">JMI</div>
           </div>
           
-          <button className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white px-8 py-4 rounded-lg font-semibold text-lg transition-all duration-300 transform hover:scale-105 shadow-lg">
+          <a href="/signup" className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white px-8 py-4 rounded-lg font-semibold text-lg transition-all duration-300 transform hover:scale-105 shadow-lg">
             Join These Students & Researchers
-          </button>
+          </a>
         </div>
       </div>
     </section>
