@@ -18,12 +18,6 @@
 - **Index Generation**: Auto-generated table of contents with page numbers
 - **Cover Page Design**: Professional cover pages with university branding
 
-### 🎯 Subject Specialization
-- **Data Structures & Algorithms**: Specialized prompts for DS/Algo experiments
-- **Programming Labs**: Complete code examples with terminal outputs
-- **Engineering Practicals**: Comprehensive apparatus and procedure documentation
-- **Academic Standards**: Follows Indian university lab report conventions
-
 ### 📊 Smart Processing
 - **Batch Processing**: Generate multiple experiments simultaneously
 - **Auto-Retry System**: Automatic retry for failed generations
