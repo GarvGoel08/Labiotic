@@ -25,70 +25,198 @@ import fs from "fs";
 import path from "path";
 import { cookies } from "next/headers";
 
-// Helper function to parse text with bold formatting
+// Helper function to parse text with bold formatting AND handle line breaks
 function parseFormattedText(text) {
   if (!text) return [{ text: "", bold: false }];
 
-  const parts = [];
-  const regex = /\*\*(.*?)\*\*/g;
-  let lastIndex = 0;
-  let match;
+  // First split by line breaks to handle each line separately
+  const lines = text.split(/\r?\n/);
+  const allParts = [];
 
-  while ((match = regex.exec(text)) !== null) {
-    // Add text before the bold part
-    if (match.index > lastIndex) {
+  lines.forEach((line, lineIndex) => {
+    if (lineIndex > 0) {
+      // Add line break between lines
+      allParts.push({ text: "", bold: false, isLineBreak: true });
+    }
+
+    if (!line.trim()) {
+      // Empty line - add a space to maintain spacing
+      allParts.push({ text: " ", bold: false });
+      return;
+    }
+
+    const parts = [];
+    const regex = /\*\*(.*?)\*\*/g;
+    let lastIndex = 0;
+    let match;
+
+    while ((match = regex.exec(line)) !== null) {
+      // Add text before the bold part
+      if (match.index > lastIndex) {
+        parts.push({
+          text: line.slice(lastIndex, match.index),
+          bold: false,
+        });
+      }
+
+      // Add the bold part
       parts.push({
-        text: text.slice(lastIndex, match.index),
+        text: match[1],
+        bold: true,
+      });
+
+      lastIndex = regex.lastIndex;
+    }
+
+    // Add remaining text
+    if (lastIndex < line.length) {
+      parts.push({
+        text: line.slice(lastIndex),
         bold: false,
       });
     }
 
-    // Add the bold part
-    parts.push({
-      text: match[1],
-      bold: true,
-    });
+    // If no parts were found, add the whole line
+    if (parts.length === 0) {
+      parts.push({ text: line, bold: false });
+    }
 
-    lastIndex = regex.lastIndex;
-  }
+    allParts.push(...parts);
+  });
 
-  // Add remaining text
-  if (lastIndex < text.length) {
-    parts.push({
-      text: text.slice(lastIndex),
-      bold: false,
-    });
-  }
-
-  return parts.length > 0 ? parts : [{ text: text, bold: false }];
+  return allParts.length > 0 ? allParts : [{ text: text, bold: false }];
 }
 
-// Helper function to create DOCX TextRuns with bold formatting
+// Helper function to create DOCX TextRuns with proper line breaks
 function createFormattedTextRuns(text, baseFontSize = 20) {
   if (!text) return [new TextRun({ text: "", size: baseFontSize })];
 
   const parts = parseFormattedText(text);
-  return parts.map(
-    (part) =>
-      new TextRun({
+  const runs = [];
+
+  parts.forEach((part) => {
+    if (part.isLineBreak) {
+      runs.push(new TextRun({ text: "", break: 1 })); // Explicit line break
+    } else {
+      runs.push(new TextRun({
         text: part.text,
         bold: part.bold,
         size: baseFontSize,
-      })
-  );
+      }));
+    }
+  });
+
+  return runs;
 }
 
-// Helper function to create formatted paragraphs
+// Helper function to create formatted paragraphs with better spacing
 function createFormattedParagraph(
   text,
   baseFontSize = 20,
   alignment = AlignmentType.LEFT
 ) {
+  if (!text) {
+    return new Paragraph({
+      children: [new TextRun({ text: "", size: baseFontSize })],
+      alignment: alignment,
+      spacing: { 
+        after: 120,  // Better spacing for readability
+        line: 276,   // 1.15 line spacing
+      },
+    });
+  }
+
   return new Paragraph({
     children: createFormattedTextRuns(text, baseFontSize),
     alignment: alignment,
-    spacing: { after: 50 }, // Reduced spacing significantly
+    spacing: { 
+      after: 120,
+      line: 276,
+    },
   });
+}
+
+// Helper function to create multiple paragraphs from text with line breaks
+function createMultipleParagraphs(text, baseFontSize = 20, alignment = AlignmentType.LEFT) {
+  if (!text) return [new Paragraph({ 
+    children: [new TextRun({ text: "", size: baseFontSize })],
+    alignment: alignment,
+    spacing: { after: 120 }
+  })];
+
+  // Split on single line breaks for proper paragraph separation
+  const lines = text.split(/\r?\n/);
+  const paragraphs = [];
+  
+  lines.forEach(line => {
+    const trimmedLine = line.trim();
+    
+    if (trimmedLine === '') {
+      // Empty line - create a small spacer paragraph
+      paragraphs.push(new Paragraph({
+        children: [new TextRun({ text: "", size: baseFontSize })],
+        alignment: alignment,
+        spacing: { after: 60 }
+      }));
+    } else {
+      // Create paragraph with formatted text runs for bold support
+      const parts = parseFormattedText(trimmedLine);
+      const textRuns = parts.map(part => new TextRun({
+        text: part.text,
+        bold: part.bold,
+        size: baseFontSize,
+      }));
+      
+      paragraphs.push(new Paragraph({
+        children: textRuns,
+        alignment: alignment,
+        spacing: { 
+          after: 120,
+          line: 276,
+        },
+      }));
+    }
+  });
+
+  return paragraphs.length > 0 ? paragraphs : [new Paragraph({
+    children: [new TextRun({ text: text, size: baseFontSize })],
+    alignment: alignment,
+    spacing: { 
+      after: 120,
+      line: 276,
+    },
+  })];
+}
+
+// Special function for code blocks with monospace font and preserved formatting
+function createCodeParagraphs(text, baseFontSize = 18, alignment = AlignmentType.LEFT) {
+  if (!text) return [new Paragraph({ 
+    children: [new TextRun({ text: "", size: baseFontSize, font: "Courier New" })],
+    alignment: alignment,
+    spacing: { after: 120 }
+  })];
+
+  // Split on line breaks and preserve all lines including empty ones
+  const lines = text.split(/\r?\n/);
+  const paragraphs = [];
+  
+  lines.forEach(line => {
+    // Don't trim for code - preserve indentation
+    paragraphs.push(new Paragraph({
+      children: [new TextRun({
+        text: line || " ", // Use space for empty lines to maintain structure
+        size: baseFontSize,
+        font: "Courier New",
+      })],
+      alignment: alignment,
+      spacing: { 
+        after: 100,
+        line: 240, // Tighter line spacing for code
+      },
+    }));
+  });
+
+  return paragraphs;
 }
 
 // Helper function to add formatted text to PDF with bold support
@@ -478,7 +606,7 @@ async function generateDOCX(labJob, user) {
             new Paragraph({
               children: [
                 new TextRun({
-                  text: "DELHI TECHNOLOGICAL UNIVERSITY",
+                  text: user.profile?.university?.name || "Labiotic University",
                   bold: true,
                   font: "Times New Roman", // Often used in formal documents
                   size: 44, // Adjusted to visually match the prominence
@@ -504,11 +632,10 @@ async function generateDOCX(labJob, user) {
               spacing: { after: 700 }, // Slightly reduced space to bring IT-201 closer
             }),
 
-            // --- IT-201 (Course Code) ---
             new Paragraph({
               children: [
                 new TextRun({
-                  text: "IT-201",
+                  text: labJob.subjectCode || "AB-ABC",
                   bold: true,
                   font: "Times New Roman",
                   size: 32, // Consistent size
@@ -519,11 +646,10 @@ async function generateDOCX(labJob, user) {
               spacing: { after: 300 }, // Closer to the lab file title
             }),
 
-            // --- Data Structures LAB FILE(G-2) ---
             new Paragraph({
               children: [
                 new TextRun({
-                  text: "Data Structures LAB FILE(G-2)",
+                  text: labJob.practicalTitle || "Not Specified",
                   bold: true,
                   underline: {}, // As per Image 2
                   font: "Times New Roman",
@@ -593,7 +719,7 @@ async function generateDOCX(labJob, user) {
                         new Paragraph({
                           children: [
                             new TextRun({
-                              text: "Dr. Lalita Luthra.", // Example, use labJob.instructorName
+                              text: labJob.instructorName || "NOT SPECIFIED",
                               font: "Times New Roman",
                               size: 24,
                             }),
@@ -612,7 +738,7 @@ async function generateDOCX(labJob, user) {
                         new Paragraph({
                           children: [
                             new TextRun({
-                              text: "Garv Goel", // Example, use user.name
+                              text: user.name || "NOT SPECIFIED", // Example, use user.name
                               font: "Times New Roman",
                               size: 24,
                             }),
@@ -622,7 +748,7 @@ async function generateDOCX(labJob, user) {
                           // Roll number in a separate paragraph for spacing
                           children: [
                             new TextRun({
-                              text: "Roll No.- 2K22/EE/108", // Example, use user.profile?.rollNumber
+                              text: user.profile?.rollNumber || "NOT SPECIFIED", // Example, use user roll number
                               font: "Times New Roman",
                               size: 24,
                             }),
@@ -838,54 +964,50 @@ async function generateDOCX(labJob, user) {
             new Paragraph({
               children: [new TextRun({ text: "AIM:", bold: true, size: 20 })],
               alignment: AlignmentType.LEFT,
-              spacing: { after: 50 },
+              spacing: { after: 60, before: 100 },
             }),
-            createFormattedParagraph(exp.generatedContent.aim, 20),
+            ...createMultipleParagraphs(exp.generatedContent.aim, 20),
 
             new Paragraph({
               children: [
                 new TextRun({ text: "APPARATUS:", bold: true, size: 20 }),
               ],
               alignment: AlignmentType.LEFT,
-              spacing: { after: 50 },
+              spacing: { after: 60, before: 100 },
             }),
             ...(Array.isArray(exp.generatedContent.apparatus)
-              ? exp.generatedContent.apparatus.map((item) =>
-                  createFormattedParagraph(`• ${item}`, 20)
+              ? exp.generatedContent.apparatus.flatMap((item) =>
+                  createMultipleParagraphs(`• ${item}`, 20)
                 )
-              : [
-                  createFormattedParagraph(
-                    exp.generatedContent.apparatus || "Not specified",
-                    20
-                  ),
-                ]),
+              : createMultipleParagraphs(
+                  exp.generatedContent.apparatus || "Not specified",
+                  20
+                )),
 
             new Paragraph({
               children: [
                 new TextRun({ text: "THEORY:", bold: true, size: 20 }),
               ],
               alignment: AlignmentType.LEFT,
-              spacing: { after: 50 },
+              spacing: { after: 60, before: 100 },
             }),
-            createFormattedParagraph(exp.generatedContent.theory, 20),
+            ...createMultipleParagraphs(exp.generatedContent.theory, 20),
 
             new Paragraph({
               children: [
                 new TextRun({ text: "PROCEDURE:", bold: true, size: 20 }),
               ],
               alignment: AlignmentType.LEFT,
-              spacing: { after: 50 },
+              spacing: { after: 60, before: 100 },
             }),
             ...(Array.isArray(exp.generatedContent.procedure)
-              ? exp.generatedContent.procedure.map((step, i) =>
-                  createFormattedParagraph(`${i + 1}. ${step}`, 20)
+              ? exp.generatedContent.procedure.flatMap((step, i) =>
+                  createMultipleParagraphs(`${i + 1}. ${step}`, 20)
                 )
-              : [
-                  createFormattedParagraph(
-                    exp.generatedContent.procedure || "Not specified",
-                    20
-                  ),
-                ]),
+              : createMultipleParagraphs(
+                  exp.generatedContent.procedure || "Not specified",
+                  20
+                )),
 
             ...(exp.generatedContent.code && exp.generatedContent.code.trim()
               ? [
@@ -894,19 +1016,9 @@ async function generateDOCX(labJob, user) {
                       new TextRun({ text: "CODE:", bold: true, size: 20 }),
                     ],
                     alignment: AlignmentType.LEFT,
-                    spacing: { after: 50 },
+                    spacing: { after: 60, before: 100 },
                   }),
-                  new Paragraph({
-                    children: [
-                      new TextRun({
-                        text: exp.generatedContent.code,
-                        font: "Courier New",
-                        size: 18,
-                      }),
-                    ],
-                    alignment: AlignmentType.LEFT,
-                    spacing: { after: 50 },
-                  }),
+                  ...createCodeParagraphs(exp.generatedContent.code, 18),
                   // Add code output if present
                   ...(exp.generatedContent.codeOutput && exp.generatedContent.codeOutput.trim()
                     ? [
@@ -915,19 +1027,9 @@ async function generateDOCX(labJob, user) {
                             new TextRun({ text: "OUTPUT:", bold: true, size: 20 }),
                           ],
                           alignment: AlignmentType.LEFT,
-                          spacing: { after: 50 },
+                          spacing: { after: 60, before: 80 },
                         }),
-                        new Paragraph({
-                          children: [
-                            new TextRun({
-                              text: exp.generatedContent.codeOutput,
-                              font: "Consolas",
-                              size: 16,
-                            }),
-                          ],
-                          alignment: AlignmentType.LEFT,
-                          spacing: { after: 100 },
-                        }),
+                        ...createCodeParagraphs(exp.generatedContent.codeOutput, 16),
                       ]
                     : []),
                 ]
@@ -938,9 +1040,9 @@ async function generateDOCX(labJob, user) {
                 new TextRun({ text: "OBSERVATIONS:", bold: true, size: 20 }),
               ],
               alignment: AlignmentType.LEFT,
-              spacing: { after: 50 },
+              spacing: { after: 60, before: 100 },
             }),
-            createFormattedParagraph(exp.generatedContent.observations, 20),
+            ...createMultipleParagraphs(exp.generatedContent.observations, 20),
 
             ...(exp.generatedContent.calculations &&
             exp.generatedContent.calculations.trim()
@@ -954,9 +1056,9 @@ async function generateDOCX(labJob, user) {
                       }),
                     ],
                     alignment: AlignmentType.LEFT,
-                    spacing: { after: 50 },
+                    spacing: { after: 60, before: 100 },
                   }),
-                  createFormattedParagraph(
+                  ...createMultipleParagraphs(
                     exp.generatedContent.calculations,
                     20
                   ),
@@ -968,28 +1070,26 @@ async function generateDOCX(labJob, user) {
                 new TextRun({ text: "RESULT:", bold: true, size: 20 }),
               ],
               alignment: AlignmentType.LEFT,
-              spacing: { after: 50 },
+              spacing: { after: 60, before: 100 },
             }),
-            createFormattedParagraph(exp.generatedContent.result, 20),
+            ...createMultipleParagraphs(exp.generatedContent.result, 20),
 
             new Paragraph({
               children: [
                 new TextRun({ text: "PRECAUTIONS:", bold: true, size: 20 }),
               ],
               alignment: AlignmentType.LEFT,
-              spacing: { after: 50 },
+              spacing: { after: 60, before: 100 },
             }),
             ...(Array.isArray(exp.generatedContent.precautions)
-              ? exp.generatedContent.precautions.map((precaution) =>
-                  createFormattedParagraph(`• ${precaution}`, 20)
+              ? exp.generatedContent.precautions.flatMap((precaution) =>
+                  createMultipleParagraphs(`• ${precaution}`, 20)
                 )
-              : [
-                  createFormattedParagraph(
-                    exp.generatedContent.precautions ||
-                      "Follow standard lab safety procedures",
-                    20
-                  ),
-                ]),
+              : createMultipleParagraphs(
+                  exp.generatedContent.precautions ||
+                    "Follow standard lab safety procedures",
+                  20
+                )),
 
             ...(exp.generatedContent.references &&
             Array.isArray(exp.generatedContent.references) &&
@@ -1004,10 +1104,10 @@ async function generateDOCX(labJob, user) {
                       }),
                     ],
                     alignment: AlignmentType.LEFT,
-                    spacing: { after: 100 },
+                    spacing: { after: 60, before: 100 },
                   }),
-                  ...exp.generatedContent.references.map((ref, i) =>
-                    createFormattedParagraph(`${i + 1}. ${ref}`, 20)
+                  ...exp.generatedContent.references.flatMap((ref, i) =>
+                    createMultipleParagraphs(`${i + 1}. ${ref}`, 20)
                   ),
                 ]
               : []),
