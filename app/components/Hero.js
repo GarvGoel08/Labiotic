@@ -29,9 +29,9 @@ export default function Hero() {
             <a  href="/signup" className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white px-8 py-4 rounded-lg font-semibold text-lg transition-all duration-300 transform hover:scale-105 shadow-lg">
               Start Creating Now
             </a>
-            <button className="border-2 border-gray-300 hover:border-blue-600 text-gray-700 hover:text-blue-600 px-8 py-4 rounded-lg font-semibold text-lg transition-all duration-300">
+            <a href="https://youtu.be/a10xQn9-wBQ?feature=shared" className="border-2 border-gray-300 hover:border-blue-600 text-gray-700 hover:text-blue-600 px-8 py-4 rounded-lg font-semibold text-lg transition-all duration-300">
               Watch Demo
-            </button>
+            </a>
           </div>
 
           {/* Demo Preview */}
